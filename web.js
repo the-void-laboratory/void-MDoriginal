@@ -29,44 +29,42 @@ let pairCache = [];
 const sessions = new Set();
 const ownerSessions = new Set();
 const NAV = [
-  { href: '/', label: 'Overview' },
-  { href: '/accounts', label: 'Accounts' },
-  { href: '/commands', label: 'Command Management' },
-  { href: '/groups', label: 'Groups' },
-  { href: '/business', label: 'Business' },
-  { href: '/chats', label: 'Chats' },
-  { href: '/reminders', label: 'Reminders' },
-  { href: '/pairing', label: 'Pairing' }
+  { href: '/', label: 'Home' },
+  { href: '/accounts', label: 'My Accounts' },
+  { href: '/commands', label: 'Feature Settings', accountRequired: true },
+  { href: '/groups', label: 'Group Tools', accountRequired: true },
+  { href: '/business', label: 'Automations', accountRequired: true },
+  { href: '/chats', label: 'Chat List', accountRequired: true },
+  { href: '/reminders', label: 'Reminders', accountRequired: true },
+  { href: '/pairing', label: 'Link New Device' }
 ];
 
 const CONTROL_CATALOG = [
-  { page: 'commands', section: 'System', key: 'mode', label: 'Bot Mode', kind: 'mode', scope: 'bot', description: 'Switch between public and self mode.' },
-  { page: 'commands', section: 'Groups', key: 'welcome', label: 'Welcome', kind: 'toggle', scope: 'chat', description: 'Join and leave notices for a group.' },
-  { page: 'commands', section: 'Groups', key: 'autoReact', label: 'Auto React', kind: 'toggle', scope: 'chat', description: 'React to messages in a group.' },
-  { page: 'commands', section: 'Groups', key: 'autoTyping', label: 'Auto Typing', kind: 'toggle', scope: 'chat', description: 'Show typing state in a group.' },
-  { page: 'commands', section: 'Groups', key: 'autoRecording', label: 'Auto Recording', kind: 'toggle', scope: 'chat', description: 'Show recording state in a group.' },
-  { page: 'commands', section: 'Groups', key: 'autoRecordType', label: 'Auto Record Type', kind: 'toggle', scope: 'chat', description: 'Show typed audio state in a group.' },
-  { page: 'commands', section: 'Groups', key: 'antilink', label: 'Anti Link', kind: 'toggle', scope: 'chat', description: 'Block WhatsApp invite links in a group.' },
-  { page: 'commands', section: 'Business', key: 'feature.autoreply', label: 'Auto Reply', kind: 'toggle', scope: 'chat', description: 'Reply automatically to matched text.' },
-  { page: 'commands', section: 'Business', key: 'feature.antispam', label: 'Anti Spam', kind: 'toggle', scope: 'chat', description: 'Remove spammy users in a chat.' },
-  { page: 'commands', section: 'Business', key: 'feature.antibadword', label: 'Anti Bad Word', kind: 'toggle', scope: 'chat', description: 'Delete bad-word messages.' },
-  { page: 'commands', section: 'Business', key: 'feature.antibot', label: 'Anti Bot', kind: 'toggle', scope: 'chat', description: 'Block bot-like accounts in a chat.' },
-  { page: 'commands', section: 'Business', key: 'autobio', label: 'Auto Bio', kind: 'toggle', scope: 'user', description: 'Keep the profile bio updated.' },
-  { page: 'commands', section: 'Business', key: 'autoread', label: 'Auto Read', kind: 'toggle', scope: 'user', description: 'Auto mark messages as read.' },
-  { page: 'commands', section: 'Business', key: 'autoViewStatus', label: 'Auto View Status', kind: 'toggle', scope: 'user', description: 'Auto view WhatsApp status updates.' },
-  { page: 'groups', section: 'Group Controls', key: 'welcome', label: 'Welcome', kind: 'toggle', scope: 'chat', description: 'Join and leave notices for a group.' },
-  { page: 'groups', section: 'Group Controls', key: 'autoReact', label: 'Auto React', kind: 'toggle', scope: 'chat', description: 'React to messages in a group.' },
-  { page: 'groups', section: 'Group Controls', key: 'autoTyping', label: 'Auto Typing', kind: 'toggle', scope: 'chat', description: 'Show typing state in a group.' },
-  { page: 'groups', section: 'Group Controls', key: 'autoRecording', label: 'Auto Recording', kind: 'toggle', scope: 'chat', description: 'Show recording state in a group.' },
-  { page: 'groups', section: 'Group Controls', key: 'autoRecordType', label: 'Auto Record Type', kind: 'toggle', scope: 'chat', description: 'Show typed audio state in a group.' },
-  { page: 'groups', section: 'Group Controls', key: 'antilink', label: 'Anti Link', kind: 'toggle', scope: 'chat', description: 'Block WhatsApp invite links in a group.' },
-  { page: 'business', section: 'Chat Automation', key: 'feature.autoreply', label: 'Auto Reply', kind: 'toggle', scope: 'chat', description: 'Reply automatically to matched text.' },
-  { page: 'business', section: 'Chat Automation', key: 'feature.antispam', label: 'Anti Spam', kind: 'toggle', scope: 'chat', description: 'Remove spammy users in a chat.' },
-  { page: 'business', section: 'Chat Automation', key: 'feature.antibadword', label: 'Anti Bad Word', kind: 'toggle', scope: 'chat', description: 'Delete bad-word messages.' },
-  { page: 'business', section: 'Chat Automation', key: 'feature.antibot', label: 'Anti Bot', kind: 'toggle', scope: 'chat', description: 'Block bot-like accounts in a chat.' },
-  { page: 'business', section: 'Personal Automation', key: 'autobio', label: 'Auto Bio', kind: 'toggle', scope: 'user', description: 'Keep the profile bio updated.' },
-  { page: 'business', section: 'Personal Automation', key: 'autoread', label: 'Auto Read', kind: 'toggle', scope: 'user', description: 'Auto mark messages as read.' },
-  { page: 'business', section: 'Personal Automation', key: 'autoViewStatus', label: 'Auto View Status', kind: 'toggle', scope: 'user', description: 'Auto view WhatsApp status updates.' }
+  { page: 'commands', section: 'System', key: 'mode', label: 'Public Access', kind: 'mode', scope: 'bot', description: 'Allow everyone to use the bot or keep it private.' },
+  { page: 'commands', section: 'Groups', key: 'welcome', label: 'Welcome Messages', kind: 'toggle', scope: 'chat', description: 'Send a greeting when someone joins the group.' },
+  { page: 'commands', section: 'Groups', key: 'autoReact', label: 'Emoji Reactions', kind: 'toggle', scope: 'chat', description: 'Automatically add emojis to new messages.' },
+  { page: 'commands', section: 'Groups', key: 'autoTyping', label: 'Typing Indicator', kind: 'toggle', scope: 'chat', description: 'Show "typing..." status when active.' },
+  { page: 'commands', section: 'Groups', key: 'autoRecording', label: 'Recording Indicator', kind: 'toggle', scope: 'chat', description: 'Show "recording audio..." status.' },
+  { page: 'commands', section: 'Groups', key: 'antilink', label: 'Group Link Blocker', kind: 'toggle', scope: 'chat', description: 'Automatically delete other group invite links.' },
+  { page: 'commands', section: 'Business', key: 'feature.autoreply', label: 'Auto Responses', kind: 'toggle', scope: 'chat', description: 'Automatically reply to specific messages.' },
+  { page: 'commands', section: 'Business', key: 'feature.antispam', label: 'Spam Protection', kind: 'toggle', scope: 'chat', description: 'Block or remove users who send too many messages.' },
+  { page: 'commands', section: 'Business', key: 'feature.antibadword', label: 'Word Filter', kind: 'toggle', scope: 'chat', description: 'Delete messages containing inappropriate language.' },
+  { page: 'commands', section: 'Business', key: 'feature.antibot', label: 'Bot Blocker', kind: 'toggle', scope: 'chat', description: 'Prevent other bots from interacting with this chat.' },
+  { page: 'commands', section: 'Business', key: 'autobio', label: 'Smart Bio', kind: 'toggle', scope: 'user', description: 'Automatically update your profile description.' },
+  { page: 'commands', section: 'Business', key: 'autoread', label: 'Auto-Read Messages', kind: 'toggle', scope: 'user', description: 'Instantly mark incoming messages as seen.' },
+  { page: 'commands', section: 'Business', key: 'autoViewStatus', label: 'Status Viewer', kind: 'toggle', scope: 'user', description: 'Automatically view your contacts\' status updates.' },
+  { page: 'groups', section: 'Group Controls', key: 'welcome', label: 'Welcome Messages', kind: 'toggle', scope: 'chat', description: 'Send a greeting when someone joins the group.' },
+  { page: 'groups', section: 'Group Controls', key: 'autoReact', label: 'Emoji Reactions', kind: 'toggle', scope: 'chat', description: 'Automatically add emojis to new messages.' },
+  { page: 'groups', section: 'Group Controls', key: 'autoTyping', label: 'Typing Indicator', kind: 'toggle', scope: 'chat', description: 'Show "typing..." status when active.' },
+  { page: 'groups', section: 'Group Controls', key: 'autoRecording', label: 'Recording Indicator', kind: 'toggle', scope: 'chat', description: 'Show "recording audio..." status.' },
+  { page: 'groups', section: 'Group Controls', key: 'antilink', label: 'Group Link Blocker', kind: 'toggle', scope: 'chat', description: 'Automatically delete other group invite links.' },
+  { page: 'business', section: 'Chat Automation', key: 'feature.autoreply', label: 'Auto Responses', kind: 'toggle', scope: 'chat', description: 'Automatically reply to specific messages.' },
+  { page: 'business', section: 'Chat Automation', key: 'feature.antispam', label: 'Spam Protection', kind: 'toggle', scope: 'chat', description: 'Block or remove users who send too many messages.' },
+  { page: 'business', section: 'Chat Automation', key: 'feature.antibadword', label: 'Word Filter', kind: 'toggle', scope: 'chat', description: 'Delete messages containing inappropriate language.' },
+  { page: 'business', section: 'Chat Automation', key: 'feature.antibot', label: 'Bot Blocker', kind: 'toggle', scope: 'chat', description: 'Prevent other bots from interacting with this chat.' },
+  { page: 'business', section: 'Personal Automation', key: 'autobio', label: 'Smart Bio', kind: 'toggle', scope: 'user', description: 'Automatically update your profile description.' },
+  { page: 'business', section: 'Personal Automation', key: 'autoread', label: 'Auto-Read Messages', kind: 'toggle', scope: 'user', description: 'Instantly mark incoming messages as seen.' },
+  { page: 'business', section: 'Personal Automation', key: 'autoViewStatus', label: 'Status Viewer', kind: 'toggle', scope: 'user', description: 'Automatically view your contacts\' status updates.' }
 ];
 
 const COMMAND_GUIDES = {
@@ -112,10 +110,10 @@ function readSettingsSnapshot() {
   return readJsonSafe(SETTINGS_PATH, {});
 }
 
-function listPairs(scopeSessionId = '') {
+function listPairs(scopeSessionId = '', isOwner = false) {
+  if (!scopeSessionId && !isOwner) return [];
   return pairCache.filter((sessionId) => {
-    if (!scopeSessionId) return true;
-    return sessionId === scopeSessionId;
+    return isOwner ? true : sessionId === scopeSessionId;
   }).map((sessionId) => ({
     name: sessionId,
     path: getSessionFolder(sessionId),
@@ -133,7 +131,7 @@ initSettings()
     console.error('MongoDB initialization failed for dashboard:', error.message);
   });
 
-function getTargetMeta(settings = {}) {
+function getInfoDetails(settings = {}) {
   const meta = settings.__meta || {};
   return {
     name: meta.name || '',
@@ -141,17 +139,18 @@ function getTargetMeta(settings = {}) {
   };
 }
 
-function listTargets(scopeSessionId = '') {
+function listTargets(scopeSessionId = '', isOwner = false) {
+  if (!scopeSessionId && !isOwner) return [];
   const snapshot = readSettingsSnapshot();
   return Object.entries(snapshot)
     .filter(([jid]) => jid !== 'bot')
     .map(([jid, settings]) => {
-      const meta = getTargetMeta(settings);
+      const meta = getInfoDetails(settings);
       const kind = meta.kind || (jid.endsWith('@g.us') ? 'group' : 'chat');
       const keys = Object.keys(settings || {}).filter((key) => key !== '__meta');
       const active = keys.filter((key) => Boolean(settings[key])).length;
       const ownerSessionId = settings.__ownerSessionId || '';
-      if (scopeSessionId && ownerSessionId && ownerSessionId !== scopeSessionId) {
+      if (!isOwner && ownerSessionId !== scopeSessionId) {
         return null;
       }
       return {
@@ -179,7 +178,7 @@ function controlValue(target, key) {
   return getSetting(target, key, false);
 }
 
-function buildState(target, scopeSessionId = '') {
+function buildState(target, scopeSessionId = '', isOwner = false) {
   const state = {};
   CONTROL_CATALOG.filter((item) => item.page === 'commands').forEach((item) => {
     state[item.key] = controlValue(target, item.key);
@@ -190,8 +189,8 @@ function buildState(target, scopeSessionId = '') {
     state[item.key] = controlValue(target, item.key);
   });
 
-  const pairs = listPairs(scopeSessionId);
-  const targets = listTargets(scopeSessionId);
+  const pairs = listPairs(scopeSessionId, isOwner);
+  const targets = listTargets(scopeSessionId, isOwner);
   const activeCount = Object.values(state).filter((value) => Boolean(value)).length;
 
   return {
@@ -311,8 +310,9 @@ function escapeHtml(value) {
     .replace(/'/g, '&#39;');
 }
 
-function navMarkup(active) {
+function navMarkup(active, hasSelectedAccount = false) {
   return NAV.map((item) => {
+    if (item.accountRequired && !hasSelectedAccount) return '';
     const cls = item.href === active ? 'nav-link active' : 'nav-link';
     return `<a class="${cls}" href="${item.href}">${escapeHtml(item.label)}</a>`;
   }).join('');
@@ -369,11 +369,11 @@ function targetCard(item, openHref) {
     </div>`;
 }
 
-function pageShell({ active, title, subtitle, body, boot = {}, script = '' }) {
-  const nav = navMarkup(active);
+function pageShell({ active, title, subtitle, body, boot = {}, script = '', hasAccount = false }) {
+  const nav = navMarkup(active, hasAccount);
   const topbarActions = boot.owner
-    ? `<a class="ghost-btn" href="/">Regular Dashboard</a><button class="ghost-btn danger-btn" id="logoutBtn" type="button">Logout</button>`
-    : `<a class="ghost-btn" href="/commands">Commands</a><a class="ghost-btn" href="/pairing">Pairing</a><a class="ghost-btn" href="/owner">Owner</a><button class="ghost-btn danger-btn" id="logoutBtn" type="button">Logout</button>`;
+    ? `<a class="ghost-btn" href="/">Dashboard</a><button class="ghost-btn danger-btn" id="logoutBtn" type="button">Logout</button>`
+    : `<button class="ghost-btn" id="navToggle">Menu</button><button class="ghost-btn danger-btn" id="logoutBtn" type="button">Logout</button>`;
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -406,11 +406,9 @@ function pageShell({ active, title, subtitle, body, boot = {}, script = '' }) {
         linear-gradient(160deg, var(--bg), var(--bg2) 58%, #07111d);
     }
     a { color: inherit; text-decoration: none; }
-    .app {
-      display: grid;
-      grid-template-columns: 272px 1fr;
-      min-height: 100vh;
-    }
+    .app { display: grid; grid-template-columns: auto 1fr; min-height: 100vh; }
+    .sidebar { width: 280px; transition: 0.3s ease; overflow: hidden; }
+    .sidebar.collapsed { width: 0; padding: 0; border: 0; }
     .sidebar {
       position: sticky;
       top: 0;
@@ -466,16 +464,7 @@ function pageShell({ active, title, subtitle, body, boot = {}, script = '' }) {
       border-color: transparent;
       font-weight: 800;
     }
-    .sidebar-foot {
-      margin-top: 22px;
-      padding: 14px;
-      border-radius: 18px;
-      border: 1px solid rgba(255,255,255,.08);
-      background: rgba(255,255,255,.04);
-      color: var(--muted);
-      font-size: 13px;
-      line-height: 1.7;
-    }
+    .sidebar-foot { display: none; }
     .main {
       padding: 24px;
       width: min(1400px, 100%);
@@ -1410,10 +1399,10 @@ function ownerLoginPage() {
 }
 
 function ownerStats() {
-  const targets = listTargets();
+  const targets = listTargets('', true);
   const groups = targets.filter((entry) => entry.kind === 'group');
   const chats = targets.filter((entry) => entry.kind === 'chat');
-  const pairs = listPairs();
+  const pairs = listPairs('', true);
   const settings = readSettingsSnapshot();
   const banned = Object.entries(settings)
     .filter(([jid, value]) => jid !== 'bot' && value && value.banned)
@@ -1622,40 +1611,23 @@ function ownerDashboardPage() {
   });
 }
 
-function homePage(scopeSessionId = '') {
-  const targets = listTargets(scopeSessionId);
-  const pairs = listPairs(scopeSessionId);
-  const groups = targets.filter((entry) => entry.kind === 'group');
-  const chats = targets.filter((entry) => entry.kind === 'chat');
+function homePage(scopeSessionId = '', isOwner = false) {
+  const pairs = listPairs(scopeSessionId, isOwner);
   return pageShell({
     active: '/',
-    title: 'Overview',
-    subtitle: 'Pair first, then choose the WhatsApp account you want to manage.',
-    boot: { defaultTarget: 'bot' },
+    title: 'Welcome',
+    subtitle: 'Get started by linking your WhatsApp or selecting an active session.',
+    hasAccount: !!scopeSessionId,
     body: `
       <div class="page-shell">
-        <div class="panel hero">
-          <div class="chips">
-            <span class="chip">${pairs.length} paired sessions</span>
-            <span class="chip">${groups.length} groups tracked</span>
-            <span class="chip">${chats.length} chats tracked</span>
-            <span class="chip">Shared settings store</span>
-          </div>
-          <div class="muted-box">
-            The dashboard starts with pairing and accounts. Pick a paired WhatsApp from Accounts before entering the command center.
-          </div>
-        </div>
-
         <div class="cards-2">
           <a class="panel section" href="/pairing">
-            <div class="section-title">Pairing</div>
-            <div class="section-desc">Create or reconnect a WhatsApp session.</div>
-            <div class="muted-box">Generate a pairing code and store the session in MongoDB Atlas.</div>
+            <div class="section-title">Link Account</div>
+            <div class="section-desc">Connect a new phone to the bot.</div>
           </a>
           <a class="panel section" href="/accounts">
-            <div class="section-title">Accounts</div>
-            <div class="section-desc">Choose one paired WhatsApp for the command center.</div>
-            <div class="muted-box">All group, chat, and command actions stay scoped to the selected session.</div>
+            <div class="section-title">Active Sessions</div>
+            <div class="section-desc">Manage your existing connected devices.</div>
           </a>
         </div>
       </div>
@@ -3040,3 +3012,13 @@ module.exports = {
 if (require.main === module) {
   module.exports.moduleMain();
 }
+
+    window.Dashboard = Dashboard;
+
+    document.getElementById('navToggle')?.addEventListener('click', () => {
+      document.querySelector('.sidebar').classList.toggle('collapsed');
+    });
+
+    ${script}
+  </script>
+</body>

@@ -977,4 +977,5 @@ fs.watchFile(file, () => {
     require(file)
 })
 
+startpairing.rentbotTracker = rentbotTracker;
 module.exports = startpairing;

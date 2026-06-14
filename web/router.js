@@ -2,6 +2,9 @@ const http = require('http');
 const crypto = require('crypto');
 const fs = require('fs');
 const { getSetting, setSetting } = require('../Settings');
+const { rentbotTracker } = require('../pair');
+const { COMMAND_INDEX, COMMAND_CATEGORIES } = require('./command-catalog');
+const templates = require('./templates');
 const {
   createWebSession,
   destroyWebSession,
@@ -59,8 +62,12 @@ async function getReminderSessionId(req) {
   const token = cookies[web.COOKIE_NAME];
   const webSession = token ? await getWebSessionByToken(token).catch(() => null) : null;
   if (webSession?.pairedSessionId) return webSession.pairedSessionId;
-  const activeSessions = await loadSessionIds({ status: 'active' }).catch(() => []);
-  return activeSessions[0] || '';
+  const accountId = await getReminderAccountId(req);
+  if (accountId) {
+    const activeSessions = await loadSessionIds({ status: 'active', accountId }).catch(() => []);
+    return activeSessions[0] || '';
+  }
+  return '';
 }
 
 async function getReminderAccountId(req) {
@@ -121,6 +128,73 @@ async function start() {
     const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
 
     try {
+      if (req.method === 'GET' && url.pathname === '/api/command/info') {
+        const slug = url.searchParams.get('slug');
+        return web.sendJson(res, 200, COMMAND_INDEX[slug] || { error: 'Not found' });
+      }
+
+      if (req.method === 'POST' && url.pathname === '/api/command/execute') {
+        if (!(await isDashboardAuthed(req))) return web.sendJson(res, 401, { error: 'Unauthorized' });
+        const body = await web.readBody(req);
+        const { slug, target, inputs } = body;
+        const cmd = COMMAND_INDEX[slug];
+        if (!cmd) return web.sendJson(res, 400, { error: 'Invalid command' });
+
+        const tracker = rentbotTracker.get(target);
+        if (!tracker || !tracker.connection) return web.sendJson(res, 400, { error: 'Session not active' });
+
+        let text = `.${cmd.name}`;
+        if (cmd.fields) {
+          cmd.fields.forEach(f => {
+            if (inputs[f.name]) text += (f.separator || ' ') + inputs[f.name];
+          });
+        }
+
+        await tracker.connection.sendMessage(target, { text });
+        return web.sendJson(res, 200, { ok: true });
+      }
+
+      if (req.method === 'GET' && url.pathname === '/commands') {
+        const target = url.searchParams.get('target') || await web.getDashboardProfileSessionId(req);
+        return res.end(templates.commandPage(target || 'bot', COMMAND_CATEGORIES));
+      }
+
+      if (req.method === 'GET' && url.pathname === '/api/command/info') {
+        const slug = url.searchParams.get('slug');
+        const cmd = COMMAND_INDEX[slug];
+        return web.sendJson(res, 200, cmd || { error: 'Not found' });
+      }
+
+      if (req.method === 'POST' && url.pathname === '/api/command/execute') {
+        if (!(await isDashboardAuthed(req))) return web.sendJson(res, 401, { error: 'Unauthorized' });
+        const body = await web.readBody(req);
+        const { slug, target, inputs } = body;
+        const cmd = COMMAND_INDEX[slug];
+        if (!cmd) return web.sendJson(res, 400, { error: 'Invalid command' });
+
+        const tracker = rentbotTracker.get(target);
+        if (!tracker || !tracker.connection) return web.sendJson(res, 400, { error: 'Session not active' });
+
+        let text = `.${cmd.name}`;
+        if (cmd.fields) {
+          cmd.fields.forEach(f => {
+            if (inputs[f.name]) text += ` ${inputs[f.name]}`;
+          });
+        }
+
+        await tracker.connection.sendMessage(target, { text });
+        return web.sendJson(res, 200, { ok: true });
+      }
+
+      if (req.method === 'GET' && url.pathname === '/commands') {
+        const scopeSessionId = await web.getDashboardScopeSessionId(req);
+        return res.end(templates.commandPage(scopeSessionId || 'bot', COMMAND_CATEGORIES));
+      }
+
+      if (req.method === 'GET' && url.pathname === '/') {
+        return res.end(templates.homePage());
+      }
+
       if (req.method === 'GET' && url.pathname === '/owner/owner') {
         res.writeHead(302, {
           Location: '/owner',
@@ -306,7 +380,7 @@ async function start() {
         if (scopeSessionId && target !== scopeSessionId && getSetting(target, '__ownerSessionId', '') !== scopeSessionId) {
           return web.sendJson(res, 403, { error: 'Forbidden' });
         }
-        return web.sendJson(res, 200, web.buildState(target, scopeSessionId));
+        return web.sendJson(res, 200, web.buildState(target, scopeSessionId, await isOwnerAuthed(req)));
       }
 
       if (req.method === 'GET' && url.pathname === '/api/targets') {
@@ -315,11 +389,11 @@ async function start() {
         if (!scopeSessionId && !(await isOwnerAuthed(req))) {
           return web.sendJson(res, 409, { error: 'Pair a WhatsApp session first' });
         }
-        const targets = web.listTargets(scopeSessionId);
+        const targets = web.listTargets(scopeSessionId, await isOwnerAuthed(req));
         return web.sendJson(res, 200, {
           groups: targets.filter((entry) => entry.kind === 'group'),
           chats: targets.filter((entry) => entry.kind === 'chat'),
-          pairs: web.listPairs(scopeSessionId)
+          pairs: web.listPairs(scopeSessionId, await isOwnerAuthed(req))
         });
       }
 

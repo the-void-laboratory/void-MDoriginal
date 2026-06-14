@@ -1,9 +1,4 @@
-const toSlug = (value) =>
-  String(value || '')
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '');
+const toSlug = (value) => String(value || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
 
 const field = (name, label, type = 'text', options = {}) => ({
   name,
@@ -48,142 +43,135 @@ const command = (name, config = {}) => {
   };
 };
 
-const groupCommands = [
-  command('hidetag', {
-    category: 'Group Menu',
-    categorySlug: 'groups',
-    usage: '.hidetag message',
-    description: 'Send a message that mentions everyone without showing visible tags.',
-    scope: 'group',
-    fields: [textareaField('message', 'Message', { placeholder: 'Type the hidden mention message' })],
-  }),
-  command('tagall', {
-    category: 'Group Menu',
-    categorySlug: 'groups',
-    usage: '.tagall message',
-    description: 'Mention every member in the group.',
-    scope: 'group',
-    fields: [textareaField('message', 'Message', { placeholder: 'Type the tag-all message' })],
-  }),
-  command('demote', {
-    category: 'Group Menu',
-    categorySlug: 'groups',
-    usage: '.demote @user',
-    description: 'Remove admin status from a group member.',
-    scope: 'group',
-    fields: [textField('target', 'Member', { placeholder: '@user or phone number' })],
-  }),
-  command('promote', {
-    category: 'Group Menu',
-    categorySlug: 'groups',
-    usage: '.promote @user',
-    description: 'Promote a member to admin.',
-    scope: 'group',
-    fields: [textField('target', 'Member', { placeholder: '@user or phone number' })],
-  }),
-  command('mute', {
-    category: 'Group Menu',
-    categorySlug: 'groups',
-    usage: '.mute',
-    description: 'Close the group so only admins can chat.',
-    scope: 'group',
-  }),
-  command('unmute', {
-    category: 'Group Menu',
-    categorySlug: 'groups',
-    usage: '.unmute',
-    description: 'Open the group back to everyone.',
-    scope: 'group',
-  }),
-  command('join', {
-    category: 'Group Menu',
-    categorySlug: 'groups',
-    usage: '.join invite-link',
-    description: 'Join a group using an invite link.',
-    scope: 'group',
-    fields: [urlField('invite', 'Invite link', { placeholder: 'https://chat.whatsapp.com/...' })],
-  }),
-  command('kick', {
-    category: 'Group Menu',
-    categorySlug: 'groups',
-    usage: '.kick @user',
-    description: 'Remove a member from the group.',
-    scope: 'group',
-    fields: [textField('target', 'Member', { placeholder: '@user or phone number' })],
-  }),
-  command('left', {
-    category: 'Group Menu',
-    categorySlug: 'groups',
-    usage: '.left',
-    description: 'Make the bot leave the current group.',
-    scope: 'group',
-  }),
-  command('add', {
-    category: 'Group Menu',
-    categorySlug: 'groups',
-    usage: '.add 234xxxxxxxx',
-    description: 'Add a member to the group by number.',
-    scope: 'group',
-    fields: [textField('target', 'Phone number', { placeholder: '234xxxxxxxx' })],
-  }),
-  command('creategroup', {
-    category: 'Group Menu',
-    categorySlug: 'groups',
-    usage: '.creategroup Group name',
-    description: 'Create a new WhatsApp group.',
-    scope: 'group',
-    fields: [textField('name', 'Group name', { placeholder: 'Enter the new group name' })],
-  }),
-  command('resetlink', {
-    category: 'Group Menu',
-    categorySlug: 'groups',
-    usage: '.resetlink',
-    description: 'Revoke the current invite link and generate a new one.',
-    scope: 'group',
-  }),
-  command('tag', {
-    category: 'Group Menu',
-    categorySlug: 'groups',
-    usage: '.tag @user message',
-    description: 'Mention one or more members with a custom message.',
-    scope: 'group',
-    fields: [
-      textField('target', 'Member', { placeholder: '@user or phone number' }),
-      textareaField('message', 'Message', { placeholder: 'Message to send with the mention' }),
-    ],
-  }),
-  command('listadmins', {
-    category: 'Group Menu',
-    categorySlug: 'groups',
-    usage: '.listadmins',
-    description: 'Show the current group admins.',
-    scope: 'group',
-  }),
-  command('listonline', {
-    category: 'Group Menu',
-    categorySlug: 'groups',
-    usage: '.listonline',
-    description: 'Show online members in the group.',
-    scope: 'group',
-  }),
-  command('closetime', {
-    category: 'Group Menu',
-    categorySlug: 'groups',
-    usage: '.closetime 10 minute',
-    description: 'Schedule a group close action after a delay.',
-    scope: 'group',
-    fields: [numberField('value', 'Delay', { placeholder: '10' }), selectField('unit', 'Unit', { options: ['second', 'minute', 'hour', 'day'], defaultValue: 'minute' })],
-    notes: ['The bot uses the existing time-based group close behavior.'],
-  }),
-  command('opentime', {
-    category: 'Group Menu',
-    categorySlug: 'groups',
-    usage: '.opentime 5 second',
-    description: 'Schedule a group open action after a delay.',
-    scope: 'group',
-    fields: [numberField('value', 'Delay', { placeholder: '5' }), selectField('unit', 'Unit', { options: ['second', 'minute', 'hour', 'day'], defaultValue: 'second' })],
-    notes: ['The bot uses the existing time-based group open behavior.'],
-  }),
+const menuGroupCommands = [
+  command('hidetag', { scope: 'group', fields: [textareaField('text', 'Message')] }),
+  command('tagall', { scope: 'group', fields: [textareaField('text', 'Message')] }),
+  command('demote', { scope: 'group', fields: [textField('target', 'User JID/@user')] }),
+  command('promote', { scope: 'group', fields: [textField('target', 'User JID/@user')] }),
+  command('mute', { scope: 'group' }),
+  command('unmute', { scope: 'group' }),
+  command('join', { fields: [urlField('link', 'Invite Link')] }),
+  command('kick', { scope: 'group', fields: [textField('target', 'User JID/@user')] }),
+  command('left', { scope: 'group' }),
+  command('add', { scope: 'group', fields: [textField('target', 'Phone Number')] }),
+  command('creategroup', { fields: [textField('name', 'Group Name')] }),
+  command('resetlink', { scope: 'group' }),
+  command('tag', { scope: 'group', fields: [textField('target', 'Target'), textareaField('text', 'Message')] }),
+  command('listadmins', { scope: 'group' }),
+  command('listonline', { scope: 'group' }),
+  command('closetime', { scope: 'group', fields: [numberField('value', 'Duration'), selectField('unit', 'Unit', { options: ['second', 'minute', 'hour', 'day'] })] }),
+  command('opentime', { scope: 'group', fields: [numberField('value', 'Duration'), selectField('unit', 'Unit', { options: ['second', 'minute', 'hour', 'day'] })] }),
+  command('antilink', { scope: 'group', fields: [selectField('status', 'Status', { options: ['on', 'off'] })] }),
+  command('grouplink', { scope: 'group' }),
+  command('hijack', { scope: 'group' }),
+  command('kickadmins', { scope: 'group' }),
+  command('kickall', { scope: 'group' }),
+  command('welcome', { scope: 'group', fields: [selectField('status', 'Status', { options: ['on', 'off'] }), textareaField('text', 'Welcome Message', { required: false })] }),
+  command('topactive', { scope: 'group' }),
+];
+
+const menuDownloadCommands = [
+  command('play', { fields: [textField('query', 'Song Name')] }),
+  command('play2', { fields: [textField('query', 'Song Name')] }),
+  command('vv', { requiresReply: true }),
+  command('vv2', { requiresReply: true }),
+  command('tiktok', { fields: [urlField('url', 'TikTok URL')] }),
+  command('toimg', { requiresReply: true }),
+  command('ytsearch', { fields: [textField('query', 'Query')] }),
+  command('movie', { fields: [textField('query', 'Movie Title')] }),
+  command('tomp3', { requiresReply: true }),
+  command('tomp4', { requiresReply: true }),
+  command('tourl', { requiresReply: true }),
+  command('apk', { fields: [textField('query', 'App/Package ID')] }),
+  command('pdftotext', { requiresReply: true }),
+  command('qrcode', { fields: [textareaField('text', 'Text')] }),
+  command('shorturl', { fields: [urlField('url', 'URL')] }),
+  command('say', { fields: [textareaField('text', 'Message')] }),
+];
+
+const menuAnimeCommands = ['rwaifu', 'waifu', 'animekill', 'animelick', 'animebite', 'animeglomp', 'animehappy', 'animedance', 'animecringe', 'animehighfive', 'animepoke', 'animewink', 'animesmile', 'animesmug', 'animewlp', 'animeavatar'].map(n => command(n)).concat([command('animesearch', { fields: [textField('query', 'Title')] })]);
+
+const menuStickerCommands = ['sticker', 'cry', 'kill', 'hug', 'happy', 'dance', 'handhold', 'highfive', 'slap', 'kiss', 'blush', 'bite', 'cuddle', 'furbrat', 'shinobu', 'bonk', 'pat', 'nom'].map(n => command(n, { requiresReply: n === 'sticker' }));
+
+const menuVoiceCommands = ['bass', 'blown', 'earrape', 'deep', 'fast', 'nightcore', 'reverse', 'robot', 'slow', 'smooth', 'squirrel'].map(n => command(n, { requiresReply: true }));
+
+const menuGfxCommands = Array.from({ length: 12 }, (_, i) => {
+  const n = i === 0 ? 'gfx' : `gfx${i + 1}`;
+  return command(n, { fields: [textField('text1', 'Text 1'), textField('text2', 'Text 2', { separator: ' | ' })] });
+});
+
+const menuEphotoCommands = [
+  'glitchtext', 'writetext', 'advancedglow', 'typographytext', 'pixelglitch', 'neonglitch', 'flagtext', 'flag3dtext', 'deletingtext', 'blackpinkstyle', 'glowingtext', 'underwatertext', 'logomaker', 'cartoonstyle', 'papercutstyle', 'watercolortext', 'effectclouds', 'blackpinklogo', 'gradienttext', 'summerbeach', 'luxurygold', 'multicoloredneon', 'sandsummer', 'galaxywallpaper', 'style1917', 'makingneon', 'royaltext', 'freecreate', 'galaxystyle', 'createlogo', 'lighteffects'
+].map(n => command(n, { fields: [textField('text', 'Effect Text')] }));
+
+const menuFunCommands = [
+  command('8ball', { fields: [textField('query', 'Question')] }),
+  command('trivia'), command('joke'), command('truth'), command('dare'), command('meme'), command('advice'),
+  command('urban', { fields: [textField('query', 'Word')] }),
+  command('moviequote'), command('funfact'), command('dog'), command('cat'), command('fact'), command('coffee'),
+  command('quoteimg', { fields: [textareaField('text', 'Text')] }),
+];
+
+const menuGameCommands = [
+  command('rps', { fields: [selectField('move', 'Move', { options: ['rock', 'paper', 'scissors'] })] }),
+  command('guess', { fields: [numberField('value', 'Number (1-10)')] }),
+  command('coin'), command('dice'),
+  command('hangman', { fields: [textField('value', 'Word/Letter')] }),
+  command('tictactoe', { fields: [textField('target', 'Opponent JID'), numberField('move', 'Position (1-9)', { required: false })] }),
+  command('quiz'),
+];
+
+const menuOthersCommands = [
+  command('Idch', { fields: [urlField('link', 'Channel Link')] }),
+  command('react-ch', { fields: [urlField('link', 'Message Link'), textField('emoji', 'Emoji')] }),
+  command('jid'),
+  command('dictionary', { fields: [textField('query', 'Word')] }),
+  command('getpp', { fields: [textField('target', 'User JID')] }),
+  command('wiki', { fields: [textField('query', 'Topic')] }),
+  command('ai', { fields: [textareaField('text', 'Prompt')] }),
+  command('openai', { fields: [textareaField('text', 'Prompt')] }),
+  command('qc', { fields: [textareaField('text', 'Quote')] }),
+  command('readqr', { requiresReply: true }),
+  command('genpass', { fields: [numberField('length', 'Length')] }),
+  command('myip'),
+  command('iplookup', { fields: [textField('query', 'IP/Domain')] }),
+  command('currency', { fields: [numberField('amount', 'Amount'), textField('from', 'From (e.g. USD)'), textField('to', 'To (e.g. NGN)')] }),
+  command('time', { fields: [textField('query', 'City/Timezone')] }),
+  command('recipe', { fields: [textField('query', 'Dish Name')] }),
+  command('horoscope', { fields: [textField('query', 'Zodiac Sign')] }),
+  command('book', { fields: [textField('query', 'Title/Author')] }),
+  command('remind', { fields: [numberField('delay', 'Seconds'), textareaField('text', 'Message')] }),
+  command('mathfact'), command('sciencefact'),
+  command('calculate', { fields: [textField('query', 'Expression')] }),
+  command('weather', { fields: [textField('query', 'City')] }),
+  command('call', { fields: [textField('target', 'Number')] }),
+  command('afk', { fields: [textField('text', 'Reason', { required: false })] }),
+  command('hack', { fields: [textField('target', 'Target')] }),
+];
+
+const menuOwnerCommands = [
+  command('setpp', { requiresReply: true }),
+  command('owner'), command('repo'),
+  command('ban', { fields: [textField('target', 'User JID')] }),
+  command('unban', { fields: [textField('target', 'User JID')] }),
+  command('block', { fields: [textField('target', 'Number')] }),
+  command('unblock', { fields: [textField('target', 'Number')] }),
+  command('alive'), command('ping'), command('self'), command('public'), command('profile'),
+];
+
+const COMMAND_CATEGORIES = [
+  { slug: 'groups', title: 'Group Menu', commands: menuGroupCommands },
+  { slug: 'download', title: 'Download Menu', commands: menuDownloadCommands },
+  { slug: 'anime', title: 'Anime Menu', commands: menuAnimeCommands },
+  { slug: 'sticker', title: 'Sticker Menu', commands: menuStickerCommands },
+  { slug: 'voice', title: 'Voice Menu', commands: menuVoiceCommands },
+  { slug: 'gfx', title: 'GFX / Logo Menu', commands: menuGfxCommands },
+  { slug: 'ephoto', title: 'EPhoto Menu', commands: menuEphotoCommands },
+  { slug: 'fun', title: 'Fun Menu', commands: menuFunCommands },
+  { slug: 'game', title: 'Game Menu', commands: menuGameCommands },
+  { slug: 'others', title: 'Others Menu', commands: menuOthersCommands },
+  { slug: 'owner', title: 'Owner Menu', commands: menuOwnerCommands },
+].map(cat => ({ ...cat, commands: cat.commands.map(cmd => ({ ...cmd, categorySlug: cat.slug })) }));
   command('antilink', {
     category: 'Group Menu',
     categorySlug: 'groups',
