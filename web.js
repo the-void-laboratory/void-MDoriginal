@@ -688,6 +688,17 @@ function pageShell({ active, title, subtitle, body, boot = {}, script = '', hasA
       z-index: 30;
     }
     .toast.show { opacity: 1; transform: translateY(0); }
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,.8);
+      backdrop-filter: blur(10px); display: none; place-items: center; z-index: 1000;
+      opacity: 0; transition: .3s ease;
+    }
+    .modal-overlay.show { display: grid; opacity: 1; }
+    .modal-box {
+      width: min(600px, 90%); max-height: 90vh; overflow: auto;
+      padding: 28px; background: var(--panel); border: 1px solid var(--panel-border);
+      border-radius: var(--radius); box-shadow: var(--shadow);
+    }
     .page-shell { display: grid; gap: 18px; }
     .pair-head {
       display: grid;
@@ -748,6 +759,14 @@ function pageShell({ active, title, subtitle, body, boot = {}, script = '', hasA
       <div class="sidebar-foot">
         Same pairing files. Same settings store. The dashboard just organizes what the bot already knows.
       </div>
+      <div class="modal-overlay" id="modalOverlay">
+        <div class="modal-box">
+          <div id="modalContent"></div>
+          <div class="toolbar" style="margin-top: 24px; justify-content: flex-end;">
+            <button class="ghost-btn" onclick="Dashboard.closeModal()">Close</button>
+          </div>
+        </div>
+      </div>
     </aside>
     <main class="main">
       <div class="topbar">
@@ -773,6 +792,18 @@ function pageShell({ active, title, subtitle, body, boot = {}, script = '', hasA
         toast.classList.add('show');
         clearTimeout(window.__toastTimer);
         window.__toastTimer = setTimeout(() => toast.classList.remove('show'), 2400);
+      }
+
+      function openModal(contentHtml) {
+        const overlay = document.getElementById('modalOverlay');
+        const box = document.getElementById('modalContent');
+        box.innerHTML = contentHtml;
+        overlay.classList.add('show');
+        bindControls();
+      }
+
+      function closeModal() {
+        document.getElementById('modalOverlay').classList.remove('show');
       }
 
       async function request(url, options = {}) {
@@ -1033,6 +1064,24 @@ function pageShell({ active, title, subtitle, body, boot = {}, script = '', hasA
       bindLogout();
       bindTargetReload();
 
+      function openSettingsSection(section) {
+        const items = window.__BOOT.controlCatalog.filter(i => i.page === 'commands' && i.section === section);
+        const html = '<h2 class="section-title">' + section + ' Settings</h2>' +
+                     '<p class="section-desc">Manage your ' + section.toLowerCase() + ' configurations below.</p>' +
+                     '<div class="control-group" style="margin-top:20px">' +
+                     items.map(i => {
+                        // Simplified version of controlCard for client side
+                        const value = window.__LATEST_STATE.settings[i.key];
+                        const checked = value ? 'checked' : '';
+                        const label = value ? 'On' : 'Off';
+                        return '<div class="control-card" data-control-key="' + i.key + '" data-control-kind="' + i.kind + '">' +
+                               '<div><div class="control-title">' + i.label + '</div><div class="control-meta">' + i.description + '</div></div>' +
+                               (i.kind === 'mode' ? '<select class="control-select"><option value="public" '+(value==='public'?'selected':'')+'>public</option><option value="self" '+(value==='self'?'selected':'')+'>self</option></select>' : '<label class="switch"><input type="checkbox" class="control-toggle" '+checked+' /> <span class="switch-label">'+label+'</span></label>') +
+                               '</div>';
+                     }).join('') + '</div>';
+        openModal(html);
+      }
+
       return {
         showToast,
         request,
@@ -1053,7 +1102,10 @@ function pageShell({ active, title, subtitle, body, boot = {}, script = '', hasA
         reminderAction,
         deleteReminder,
         bindControls,
-        applyControlState
+        applyControlState,
+        openModal,
+        closeModal,
+        openSettingsSection
       };
     })();
 
@@ -1732,12 +1784,10 @@ function accountsPage(accountId = '', selectedSessionId = '') {
 function commandPage(activeTarget, lockedTarget = false) {
   const sections = ['System', 'Groups', 'Business'];
   const grouped = sections.map((section) => {
-    const cards = CONTROL_CATALOG.filter((item) => item.page === 'commands' && item.section === section).map(controlCard).join('');
     return `
-      <div class="section panel">
-        <h2 class="section-title">${escapeHtml(section)}</h2>
-        <p class="section-desc">Controls grouped under ${escapeHtml(section.toLowerCase())}.</p>
-        <div class="control-group">${cards}</div>
+      <div class="panel section" style="cursor:pointer" onclick="Dashboard.openSettingsSection('${section}')">
+        <h2 class="section-title">${escapeHtml(section)} Settings</h2>
+        <p class="section-desc">Manage ${escapeHtml(section.toLowerCase())} features and bot behavior.</p>
       </div>`;
   }).join('');
 
@@ -1761,8 +1811,8 @@ function commandPage(activeTarget, lockedTarget = false) {
           <div class="panel stat"><div class="stat-label">Mode</div><div class="stat-value" id="summaryMode">public</div></div>
         </div>
 
-        <div class="page-grid">
-          <div class="section-columns">${grouped}</div>
+        <div class="page-shell">
+          <div class="cards-3">${grouped}</div>
           <div class="section panel">
             <h2 class="section-title">Command Reference</h2>
             <p class="section-desc">Command references grouped by purpose.</p>
@@ -1773,56 +1823,35 @@ function commandPage(activeTarget, lockedTarget = false) {
     `,
     script: `
       (async () => {
-        await Dashboard.loadState();
+        window.__BOOT.controlCatalog = ${JSON.stringify(CONTROL_CATALOG)};
+        window.__LATEST_STATE = await Dashboard.loadState();
       })();
     `
   });
 }
 
 function groupsPage(activeTarget) {
-  const cards = CONTROL_CATALOG.filter((item) => item.page === 'groups').map(controlCard).join('');
-  const guides = COMMAND_GUIDES.groups.map(guideCard).join('');
   return pageShell({
     active: '/groups',
-    title: 'Groups',
-    subtitle: 'Group tools and group targets in one place.',
+    title: 'Group Tools',
+    subtitle: 'Manage your group interactions and automated tools.',
     boot: { defaultTarget: activeTarget || 'bot' },
+    hasAccount: true,
     body: `
       <div class="page-shell">
+        <div class="cards-3">
+          <div class="panel section" style="cursor:pointer" onclick="Dashboard.openSettingsSection('Group Controls')">
+            <h2 class="section-title">Automation Settings</h2>
+            <p class="section-desc">Configure welcome messages and link protection.</p>
+          </div>
+          <div class="panel section" style="cursor:pointer" onclick="window.location.href='/groups/view'">
+            <h2 class="section-title">Manage Groups</h2>
+            <p class="section-desc">Select a specific group to view detailed controls.</p>
+          </div>
+        </div>
         <div class="panel section">
-          <h2 class="section-title">Selected group</h2>
-          <p class="section-desc">Pick a group target or paste a group JID.</p>
-          <div class="toolbar">
-            <input class="field" data-target-input value="${escapeHtml(activeTarget || 'bot')}" placeholder="group JID like 1203...@g.us" />
-            <button class="primary-btn" type="button" data-target-reload>Load group</button>
-          </div>
-        </div>
-
-        <div class="grid-4">
-          <div class="panel stat"><div class="stat-label">Tracked groups</div><div class="stat-value" id="summaryGroups">0</div></div>
-          <div class="panel stat"><div class="stat-label">Stored keys</div><div class="stat-value" id="summaryKeys">0</div></div>
-          <div class="panel stat"><div class="stat-label">Active flags</div><div class="stat-value" id="summaryActive">0</div></div>
-          <div class="panel stat"><div class="stat-label">Pairs</div><div class="stat-value" id="summaryPairs">0</div></div>
-        </div>
-
-        <div class="page-grid">
-          <div class="section-columns">
-            <div class="panel section">
-              <h2 class="section-title">Group Controls</h2>
-              <p class="section-desc">Group controls.</p>
-              <div class="control-group">${cards}</div>
-            </div>
-            <div class="panel section">
-              <h2 class="section-title">Group Commands</h2>
-              <p class="section-desc">Group command references.</p>
-              <div class="list">${guides}</div>
-            </div>
-          </div>
-          <div class="section panel">
-            <h2 class="section-title">Tracked Groups</h2>
-            <p class="section-desc">Names and IDs only.</p>
+            <h2 class="section-title">Recent Active Groups</h2>
             <div id="targetList" class="list"></div>
-          </div>
         </div>
       </div>
     `,
@@ -1836,54 +1865,27 @@ function groupsPage(activeTarget) {
 }
 
 function businessPage(activeTarget) {
-  const cards = CONTROL_CATALOG.filter((item) => item.page === 'business').map(controlCard).join('');
-  const guides = COMMAND_GUIDES.business.map(guideCard).join('');
   return pageShell({
     active: '/business',
-    title: 'Business',
-    subtitle: 'Business automation, separated from group tools.',
+    title: 'Automations',
+    subtitle: 'Personal and chat automation settings.',
     boot: { defaultTarget: activeTarget || 'bot' },
+    hasAccount: true,
     body: `
       <div class="page-shell">
+        <div class="cards-2">
+          <div class="panel section" style="cursor:pointer" onclick="Dashboard.openSettingsSection('Chat Automation')">
+            <h2 class="section-title">Chat Filters</h2>
+            <p class="section-desc">Manage spam, bad language, and auto-replies.</p>
+          </div>
+          <div class="panel section" style="cursor:pointer" onclick="Dashboard.openSettingsSection('Personal Automation')">
+            <h2 class="section-title">Profile Tools</h2>
+            <p class="section-desc">Manage your bio, read receipts, and status views.</p>
+          </div>
+        </div>
         <div class="panel section">
-          <h2 class="section-title">Target</h2>
-          <p class="section-desc">Use a user, chat, or group JID.</p>
-          <div class="toolbar">
-            <input class="field" data-target-input value="${escapeHtml(activeTarget || 'bot')}" placeholder="chat or user JID" />
-            <button class="primary-btn" type="button" data-target-reload>Load target</button>
-          </div>
-        </div>
-
-        <div class="grid-4">
-          <div class="panel stat"><div class="stat-label">Tracked chats</div><div class="stat-value" id="summaryChats">0</div></div>
-          <div class="panel stat"><div class="stat-label">Stored keys</div><div class="stat-value" id="summaryKeys">0</div></div>
-          <div class="panel stat"><div class="stat-label">Active flags</div><div class="stat-value" id="summaryActive">0</div></div>
-          <div class="panel stat"><div class="stat-label">Mode</div><div class="stat-value" id="summaryMode">public</div></div>
-        </div>
-
-        <div class="page-grid">
-          <div class="section-columns">
-            <div class="panel section">
-              <h2 class="section-title">Chat Automation</h2>
-              <p class="section-desc">Auto-reply, anti-spam, anti-bad-word, and anti-bot controls.</p>
-              <div class="control-group">${cards.filter((_, index) => index < 4).join('')}</div>
-            </div>
-            <div class="panel section">
-              <h2 class="section-title">Personal Automation</h2>
-              <p class="section-desc">User-level behavior like bio, read receipts, and status viewing.</p>
-              <div class="control-group">${cards.filter((_, index) => index >= 4).join('')}</div>
-            </div>
-            <div class="panel section">
-              <h2 class="section-title">Business Commands</h2>
-              <p class="section-desc">Business command references.</p>
-              <div class="list">${guides}</div>
-            </div>
-          </div>
-          <div class="section panel">
-            <h2 class="section-title">Tracked Chats</h2>
-            <p class="section-desc">Non-group targets only.</p>
+            <h2 class="section-title">Tracked Individual Chats</h2>
             <div id="targetList" class="list"></div>
-          </div>
         </div>
       </div>
     `,
@@ -2143,22 +2145,12 @@ function remindersPage(activeTarget) {
   const target = activeTarget || 'bot';
   return pageShell({
     active: '/reminders',
-    title: 'Reminders',
-    subtitle: 'Advanced reminder planning for group chats and direct chats, with timezone-aware scheduling and task management.',
+    title: 'My Reminders',
+    subtitle: 'Schedule and manage automated messages.',
     boot: { defaultTarget: target },
+    hasAccount: true,
     body: `
       <div class="page-shell">
-        <div class="panel hero">
-          <div class="chips">
-            <span class="chip">Timezone aware</span>
-            <span class="chip">Natural language optional</span>
-            <span class="chip">Upcoming, past, recurring views</span>
-          </div>
-          <div class="muted-box">
-            Build reminders manually or with natural language, then manage them with snooze, complete, next-day, and delete actions from one dashboard.
-          </div>
-        </div>
-
         <div class="grid-4">
           <div class="panel stat"><div class="stat-label">Upcoming</div><div class="stat-value" id="remStatUpcoming">0</div><div class="stat-note">Pending reminders ahead of time</div></div>
           <div class="panel stat"><div class="stat-label">Recurring</div><div class="stat-value" id="remStatRecurring">0</div><div class="stat-note">Daily, weekly, monthly, yearly, custom</div></div>
@@ -2166,144 +2158,31 @@ function remindersPage(activeTarget) {
           <div class="panel stat"><div class="stat-label">Selected target</div><div class="stat-value" id="remStatTarget">${escapeHtml(target)}</div><div class="stat-note">Current dashboard scope</div></div>
         </div>
 
-        <div class="page-grid">
-          <div class="section-columns">
-            <div class="panel section">
-              <h2 class="section-title">Reminder Preferences</h2>
-              <p class="section-desc">These settings are saved to your MongoDB Atlas profile and used as defaults when you create reminders.</p>
-              <div class="toolbar">
-                <input class="field" id="prefTimezone" placeholder="Africa/Lagos" />
-                <input class="field" id="prefDefaultTime" placeholder="09:00" />
-              </div>
-              <div class="toolbar">
-                <select class="field" id="prefTimeFormat">
-                  <option value="12h">12-hour clock</option>
-                  <option value="24h">24-hour clock</option>
-                </select>
-                <select class="field" id="prefDateFormat">
-                  <option value="DD/MM/YYYY">DD/MM/YYYY</option>
-                  <option value="MM/DD/YYYY">MM/DD/YYYY</option>
-                  <option value="YYYY-MM-DD">YYYY-MM-DD</option>
-                </select>
-              </div>
-              <div class="toolbar">
-                <input class="field" id="prefAdvanceMinutes" type="number" min="0" placeholder="Advance alert minutes" />
-                <select class="field" id="prefMentionMode">
-                  <option value="none">No mentions</option>
-                  <option value="all">@all for groups</option>
-                  <option value="specific">Specific members</option>
-                </select>
-              </div>
-              <div class="toolbar">
-                <input class="field" id="prefQuietStart" placeholder="Quiet hours start, e.g. 22:00" />
-                <input class="field" id="prefQuietEnd" placeholder="Quiet hours end, e.g. 07:00" />
-              </div>
-              <div class="toolbar">
-                <label class="switch"><input id="prefNatLang" type="checkbox" /> <span class="switch-label">Natural language parsing</span></label>
-                <label class="switch"><input id="prefQuietEnabled" type="checkbox" /> <span class="switch-label">Quiet hours / DND</span></label>
-              </div>
-              <button class="primary-btn" id="savePrefBtn" type="button">Save preferences</button>
-              <div class="muted-box" id="prefStatus">Preferences load from your account profile.</div>
-            </div>
-
-            <div class="panel section">
-              <h2 class="section-title">Create Reminder</h2>
-              <p class="section-desc">Target a group or direct chat, then decide how and when the reminder should fire.</p>
-              <div class="toolbar">
-                <input class="field" id="remTarget" value="${escapeHtml(target)}" placeholder="Group or chat JID" />
-                <select class="field" id="remTargetType">
-                  <option value="chat">Direct chat</option>
-                  <option value="group">Group chat</option>
-                </select>
-              </div>
-              <textarea class="field" id="remNaturalText" rows="3" placeholder="Natural language: Remind me to call John in 2 hours"></textarea>
-              <div class="toolbar">
-                <button class="ghost-btn" id="parseBtn" type="button">Parse text</button>
-                <label class="switch"><input id="remUseNatLang" type="checkbox" /> <span class="switch-label">Use natural language</span></label>
-              </div>
-              <div class="toolbar">
-                <input class="field" id="remDate" type="date" />
-                <input class="field" id="remTime" type="time" />
-              </div>
-              <textarea class="field" id="remMessage" rows="4" placeholder="Reminder message"></textarea>
-              <div class="toolbar">
-                <select class="field" id="remRecurrence">
-                  <option value="none">No repeat</option>
-                  <option value="daily">Daily</option>
-                  <option value="weekly">Weekly</option>
-                  <option value="monthly">Monthly</option>
-                  <option value="yearly">Yearly</option>
-                  <option value="custom">Custom interval</option>
-                  <option value="nth-weekday">Every nth weekday of month</option>
-                </select>
-                <input class="field" id="remInterval" type="number" min="1" value="1" placeholder="Interval" />
-              </div>
-              <div class="toolbar">
-                <select class="field" id="remWeekday">
-                  <option value="">Weekday</option>
-                  <option value="0">Sunday</option>
-                  <option value="1">Monday</option>
-                  <option value="2">Tuesday</option>
-                  <option value="3">Wednesday</option>
-                  <option value="4">Thursday</option>
-                  <option value="5">Friday</option>
-                  <option value="6">Saturday</option>
-                </select>
-                <select class="field" id="remOrdinal">
-                  <option value="">Ordinal</option>
-                  <option value="1">First</option>
-                  <option value="2">Second</option>
-                  <option value="3">Third</option>
-                  <option value="4">Fourth</option>
-                  <option value="5">Fifth</option>
-                </select>
-              </div>
-              <div class="toolbar">
-                <input class="field" id="remAdvanceMinutes" type="number" min="0" placeholder="Advance alert minutes" />
-                <input class="field" id="remSnoozeMinutes" type="number" min="1" placeholder="Default snooze minutes" value="15" />
-              </div>
-              <div class="toolbar">
-                <select class="field" id="remMentionMode">
-                  <option value="none">No mentions</option>
-                  <option value="all">@all</option>
-                  <option value="specific">Specific members</option>
-                </select>
-                <input class="field" id="remMentionJids" placeholder="member1@s.whatsapp.net, member2@s.whatsapp.net" />
-              </div>
-              <div class="toolbar">
-                <select class="field" id="remAckAction">
-                  <option value="keep">Keep after acknowledge</option>
-                  <option value="delete">Delete after acknowledge</option>
-                  <option value="next-day">Push to next day</option>
-                </select>
-              </div>
-              <div class="toolbar">
-                <label class="switch"><input id="remTagAll" type="checkbox" /> <span class="switch-label">Tag all members</span></label>
-                <label class="switch"><input id="remQuietEnabled" type="checkbox" /> <span class="switch-label">Honor quiet hours</span></label>
-              </div>
-              <button class="primary-btn" id="saveReminderBtn" type="button">Save reminder</button>
-              <button class="ghost-btn" id="resetReminderBtn" type="button">Reset form</button>
-              <div class="muted-box" id="reminderStatus">Create a reminder or edit an existing one.</div>
-            </div>
+        <div class="cards-3">
+          <div class="panel section" style="cursor:pointer" onclick="Dashboard.openModal(document.getElementById('tpl-reminder-form').innerHTML)">
+            <h2 class="section-title">New Reminder</h2>
+            <p class="section-desc">Create a one-time or repeating alert.</p>
           </div>
+          <div class="panel section" style="cursor:pointer" onclick="Dashboard.openModal(document.getElementById('tpl-reminder-prefs').innerHTML)">
+            <h2 class="section-title">Preferences</h2>
+            <p class="section-desc">Set your default timezone and quiet hours.</p>
+          </div>
+        </div>
 
-          <div class="section panel">
-            <h2 class="section-title">Reminder Lists</h2>
-            <p class="section-desc">Switch between upcoming, recurring, past, and all reminders.</p>
+        <div class="section panel">
+            <h2 class="section-title">Active Reminder Queue</h2>
             <div class="toolbar">
               <button class="ghost-btn" type="button" data-view-btn="upcoming">Upcoming</button>
               <button class="ghost-btn" type="button" data-view-btn="recurring">Recurring</button>
               <button class="ghost-btn" type="button" data-view-btn="past">Past</button>
               <button class="ghost-btn" type="button" data-view-btn="all">All</button>
             </div>
-            <div class="toolbar">
-              <button class="ghost-btn danger-btn" type="button" id="bulkDeleteBtn">Bulk delete</button>
-              <button class="ghost-btn" type="button" id="bulkCompleteBtn">Bulk complete</button>
-            </div>
             <div id="reminderList" class="list"></div>
-          </div>
         </div>
       </div>
+      <!-- Hidden Templates for Modals -->
+      <template id="tpl-reminder-form">...</template>
+      <template id="tpl-reminder-prefs">...</template>
     `,
     script: `
       (async () => {
@@ -3012,13 +2891,3 @@ module.exports = {
 if (require.main === module) {
   module.exports.moduleMain();
 }
-
-    window.Dashboard = Dashboard;
-
-    document.getElementById('navToggle')?.addEventListener('click', () => {
-      document.querySelector('.sidebar').classList.toggle('collapsed');
-    });
-
-    ${script}
-  </script>
-</body>
