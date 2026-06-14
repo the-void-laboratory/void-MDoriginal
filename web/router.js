@@ -21,6 +21,7 @@ const {
   getReminderById,
   updateReminder,
   deleteReminder,
+  deleteReminderTree,
   deleteReminderChildren,
   completeReminder,
   snoozeReminder,

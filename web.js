@@ -4,6 +4,7 @@ const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 const { getSetting, setSetting, initSettings } = require('./Settings');
+const { getTargetMeta } = require('web/state.js');
 const {
   createWebSession,
   getWebSessionByToken,
@@ -2188,8 +2189,55 @@ function remindersPage(activeTarget) {
         </div>
       </div>
       <!-- Hidden Templates for Modals -->
-      <template id="tpl-reminder-form">...</template>
-      <template id="tpl-reminder-prefs">...</template>
+      <template id="tpl-reminder-form">
+        <div class="section">
+          <h2 class="section-title">Schedule New Reminder</h2>
+          <p class="section-desc">Fill in the details below to set a message alert.</p>
+          <div class="toolbar">
+            <input class="field" id="remTarget" placeholder="Phone number or Group ID" />
+            <select class="field" id="remTargetType"><option value="chat">Direct Chat</option><option value="group">Group Chat</option></select>
+          </div>
+          <textarea class="field" id="remNaturalText" rows="2" placeholder="e.g., Remind me to call John in 2 hours"></textarea>
+          <div class="toolbar">
+            <button class="ghost-btn tiny-btn" id="parseBtn">Auto-Fill from Text</button>
+            <label class="switch"><input id="remUseNatLang" type="checkbox" /> <span class="switch-label">Use Smart Parsing</span></label>
+          </div>
+          <div class="toolbar">
+            <input class="field" id="remDate" type="date" />
+            <input class="field" id="remTime" type="time" />
+          </div>
+          <textarea class="field" id="remMessage" rows="3" placeholder="Message content"></textarea>
+          <div class="toolbar">
+            <select class="field" id="remRecurrence">
+              <option value="none">One-time</option>
+              <option value="daily">Every day</option>
+              <option value="weekly">Every week</option>
+            </select>
+            <input class="field" id="remAdvanceMinutes" type="number" placeholder="Alert mins early" />
+          </div>
+          <button class="primary-btn" id="saveReminderBtn">Create Reminder</button>
+          <div class="small" id="reminderStatus"></div>
+        </div>
+      </template>
+      <template id="tpl-reminder-prefs">
+        <div class="section">
+          <h2 class="section-title">My Preferences</h2>
+          <p class="section-desc">Set your local time behavior.</p>
+          <label>Timezone</label>
+          <input class="field" id="prefTimezone" placeholder="Africa/Lagos" />
+          <label>Default Daily Time</label>
+          <input class="field" id="prefDefaultTime" type="time" />
+          <div class="toolbar" style="margin-top:15px">
+            <label class="switch"><input id="prefQuietEnabled" type="checkbox" /> <span class="switch-label">Do Not Disturb</span></label>
+          </div>
+          <div class="toolbar">
+            <input class="field" id="prefQuietStart" type="time" placeholder="Start" />
+            <input class="field" id="prefQuietEnd" type="time" placeholder="End" />
+          </div>
+          <button class="primary-btn" id="savePrefBtn" style="margin-top:15px">Save My Settings</button>
+          <div class="small" id="prefStatus"></div>
+        </div>
+      </template>
     `,
     script: `
       (async () => {

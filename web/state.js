@@ -14,10 +14,10 @@ function readSettingsSnapshot() {
   return readJsonSafe(SETTINGS_PATH, {});
 }
 
-function listPairs(scopeSessionId = '') {
+function listPairs(scopeSessionId = '', isOwner = false) {
+  if (!scopeSessionId && !isOwner) return [];
   return pairCache.filter((sessionId) => {
-    if (!scopeSessionId) return true;
-    return sessionId === scopeSessionId;
+    return isOwner ? true : sessionId === scopeSessionId;
   }).map((sessionId) => ({
     name: sessionId,
     path: getSessionFolder(sessionId),
@@ -35,7 +35,7 @@ initSettings()
     console.error('MongoDB initialization failed for dashboard:', error.message);
   });
 
-function getTargetMeta(settings = {}) {
+function getInfoDetails(settings = {}) {
   const meta = settings.__meta || {};
   return {
     name: meta.name || '',
@@ -43,17 +43,18 @@ function getTargetMeta(settings = {}) {
   };
 }
 
-function listTargets(scopeSessionId = '') {
+function listTargets(scopeSessionId = '', isOwner = false) {
+  if (!scopeSessionId && !isOwner) return [];
   const snapshot = readSettingsSnapshot();
   return Object.entries(snapshot)
     .filter(([jid]) => jid !== 'bot')
     .map(([jid, settings]) => {
-      const meta = getTargetMeta(settings);
+      const meta = getInfoDetails(settings);
       const kind = meta.kind || (jid.endsWith('@g.us') ? 'group' : 'chat');
       const keys = Object.keys(settings || {}).filter((key) => key !== '__meta');
       const active = keys.filter((key) => Boolean(settings[key])).length;
       const ownerSessionId = settings.__ownerSessionId || '';
-      if (scopeSessionId && ownerSessionId && ownerSessionId !== scopeSessionId) {
+      if (!isOwner && ownerSessionId !== scopeSessionId) {
         return null;
       }
       return {
@@ -81,7 +82,7 @@ function controlValue(target, key) {
   return getSetting(target, key, false);
 }
 
-function buildState(target, scopeSessionId = '') {
+function buildState(target, scopeSessionId = '', isOwner = false) {
   const { CONTROL_CATALOG } = require('./constants');
   const state = {};
   CONTROL_CATALOG.filter((item) => item.page === 'commands').forEach((item) => {
@@ -93,8 +94,8 @@ function buildState(target, scopeSessionId = '') {
     state[item.key] = controlValue(target, item.key);
   });
 
-  const pairs = listPairs(scopeSessionId);
-  const targets = listTargets(scopeSessionId);
+  const pairs = listPairs(scopeSessionId, isOwner);
+  const targets = listTargets(scopeSessionId, isOwner);
   const activeCount = Object.values(state).filter((value) => Boolean(value)).length;
 
   return {
@@ -117,7 +118,7 @@ module.exports = {
   readSettingsSnapshot,
   listPairs,
   refreshPairCache,
-  getTargetMeta,
+  getInfoDetails,
   listTargets,
   getTargetKind,
   controlValue,
