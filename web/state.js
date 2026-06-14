@@ -35,7 +35,7 @@ initSettings()
     console.error('MongoDB initialization failed for dashboard:', error.message);
   });
 
-function getTargetMeta(settings = {}) {
+function getInfoDetails(settings = {}) {
   const meta = settings.__meta || {};
   return {
     name: meta.name || '',
@@ -48,7 +48,7 @@ function listTargets(scopeSessionId = '') {
   return Object.entries(snapshot)
     .filter(([jid]) => jid !== 'bot')
     .map(([jid, settings]) => {
-      const meta = getTargetMeta(settings);
+      const meta = getInfoDetails(settings);
       const kind = meta.kind || (jid.endsWith('@g.us') ? 'group' : 'chat');
       const keys = Object.keys(settings || {}).filter((key) => key !== '__meta');
       const active = keys.filter((key) => Boolean(settings[key])).length;
@@ -117,7 +117,7 @@ module.exports = {
   readSettingsSnapshot,
   listPairs,
   refreshPairCache,
-  getTargetMeta,
+  getInfoDetails,
   listTargets,
   getTargetKind,
   controlValue,

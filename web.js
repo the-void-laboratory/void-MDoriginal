@@ -1831,34 +1831,41 @@ function commandPage(activeTarget, lockedTarget = false) {
 }
 
 function groupsPage(activeTarget) {
+  const target = activeTarget || 'bot';
   return pageShell({
     active: '/groups',
     title: 'Group Tools',
     subtitle: 'Manage your group interactions and automated tools.',
-    boot: { defaultTarget: activeTarget || 'bot' },
+    boot: { defaultTarget: target },
     hasAccount: true,
     body: `
       <div class="page-shell">
-        <div class="cards-3">
+        <div class="cards-2">
           <div class="panel section" style="cursor:pointer" onclick="Dashboard.openSettingsSection('Group Controls')">
             <h2 class="section-title">Automation Settings</h2>
             <p class="section-desc">Configure welcome messages and link protection.</p>
           </div>
-          <div class="panel section" style="cursor:pointer" onclick="window.location.href='/groups/view'">
-            <h2 class="section-title">Manage Groups</h2>
-            <p class="section-desc">Select a specific group to view detailed controls.</p>
+          <div class="panel section" style="cursor:pointer" onclick="Dashboard.openModal(document.getElementById('tpl-group-list').innerHTML)">
+            <h2 class="section-title">Tracked Groups</h2>
+            <p class="section-desc">View and select from your list of active groups.</p>
           </div>
         </div>
         <div class="panel section">
-            <h2 class="section-title">Recent Active Groups</h2>
+            <h2 class="section-title">Active Reminder Queue</h2>
             <div id="targetList" class="list"></div>
         </div>
       </div>
+      <template id="tpl-group-list"><div class="section"><h2 class="section-title">My Groups</h2><div id="modalTargetList" class="list"></div></div></template>
     `,
     script: `
       (async () => {
         const data = await Dashboard.loadState();
         Dashboard.renderTargets(data.groups, 'targetList', '/groups/view');
+        
+        window.showGroupList = () => {
+           Dashboard.openModal(document.getElementById('tpl-group-list').innerHTML);
+           Dashboard.renderTargets(data.groups, 'modalTargetList', '/groups/view');
+        };
       })();
     `
   });
